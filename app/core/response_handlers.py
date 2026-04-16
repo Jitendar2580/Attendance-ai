@@ -25,6 +25,7 @@ class ResponseHandler:
             context = {}
         context["request"] = request
         return self.templates.TemplateResponse(
+            request,
             template_name,
             context,
             status_code=status_code,
