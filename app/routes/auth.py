@@ -20,7 +20,7 @@ ALLOWED_REGISTER_ROLES = [UserRole.MANAGER, UserRole.PLAYER]
 
 @router.get("/login")
 def login_page(request: Request):
-    return response_handler.template_response("auth/login.html", request)
+    return response_handler.template_response(request, "auth/login.html")
 
 
 @router.post("/login")
@@ -44,8 +44,8 @@ def login(
 @router.get("/register")
 def register_page(request: Request, db: Session = Depends(get_db)):
     return response_handler.template_response(
-        "auth/register.html",
         request,
+        "auth/register.html",
         {"teams": list_teams(db), "roles": ALLOWED_REGISTER_ROLES},
     )
 
