@@ -22,6 +22,15 @@ STATIC_DIR = ROOT_DIR / "static"
 app = FastAPI(title=settings.app_name)
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
+
+def not_found_html() -> HTMLResponse:
+    """Static 404 page without Jinja (avoids loader/version issues in production)."""
+    return HTMLResponse(
+        (TEMPLATES_DIR / "404.html").read_text(encoding="utf-8"),
+        status_code=404,
+    )
+
+
 # Middleware setup
 app.add_middleware(
     SessionMiddleware,
@@ -41,13 +50,13 @@ async def starlette_exception_handler(request: Request, exc: StarletteHTTPExcept
         return RedirectResponse(url="/auth/login", status_code=303)
     elif exc.status_code == 404:
         if request.url.path == "/404.html":
-            return templates.TemplateResponse(request, "404.html", status_code=404)
+            return not_found_html()
         return RedirectResponse(url="/404.html", status_code=303)
     return HTMLResponse(content=str(exc.detail), status_code=exc.status_code)
 
 @app.get("/404.html")
-def not_found_page(request: Request):
-    return templates.TemplateResponse(request, "404.html", status_code=404)
+def not_found_page():
+    return not_found_html()
 
 # Router includes
 app.include_router(auth.router)
