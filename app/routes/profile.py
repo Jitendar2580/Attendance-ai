@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+import os
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
@@ -11,7 +12,7 @@ from app.schemas.user import UserUpdate
 from app.services.user_service import get_user_by_email, update_user
 
 router = APIRouter(prefix="/profile", tags=["profile"])
-templates = Jinja2Templates(directory="app/templates")
+templates = Jinja2Templates(directory=os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates"))
 response_handler = ResponseHandler(templates)
 
 

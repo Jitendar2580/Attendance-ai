@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+import os
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
@@ -11,7 +12,7 @@ from app.services.dashboard_service import build_dashboard_metrics
 from app.services.dashboard_helper import get_player_dashboard_metrics
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
-templates = Jinja2Templates(directory="app/templates")
+templates = Jinja2Templates(directory=os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates"))
 response_handler = ResponseHandler(templates)
 
 

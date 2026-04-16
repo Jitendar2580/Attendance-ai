@@ -2,6 +2,7 @@ from datetime import date
 from pathlib import Path
 from uuid import uuid4
 import shutil
+import os
 
 from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
 from fastapi.responses import RedirectResponse, StreamingResponse
@@ -18,7 +19,7 @@ from app.schemas.attendance import AttendanceCreate
 from app.services.attendance_service import create_attendance, list_attendance
 
 router = APIRouter(prefix="/attendance", tags=["attendance"])
-templates = Jinja2Templates(directory="app/templates")
+templates = Jinja2Templates(directory=os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates"))
 response_handler = ResponseHandler(templates)
 
 # Constants

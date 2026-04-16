@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+import os
 
 from app.core.database import get_db
 from app.core.response_handlers import ResponseHandler
@@ -12,7 +13,7 @@ from app.services.team_service import list_teams
 from app.services.user_service import create_user, get_user_by_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-templates = Jinja2Templates(directory="app/templates")
+templates = Jinja2Templates(directory=os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates"))
 response_handler = ResponseHandler(templates)
 
 ALLOWED_REGISTER_ROLES = [UserRole.MANAGER, UserRole.PLAYER]

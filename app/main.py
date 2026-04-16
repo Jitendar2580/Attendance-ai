@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
+import os
 
 from app.core.config import get_settings
 from app.core.init import initialize_defaults
@@ -14,7 +15,7 @@ from app.routes import attendance, auth, chat, dashboard, profile, teams, users
 settings = get_settings()
 
 app = FastAPI(title=settings.app_name)
-templates = Jinja2Templates(directory="app/templates")
+templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
 
 # Middleware setup
 app.add_middleware(
@@ -34,7 +35,10 @@ async def starlette_exception_handler(request: Request, exc: StarletteHTTPExcept
     if exc.status_code == 401:
         return RedirectResponse(url="/auth/login", status_code=303)
     elif exc.status_code == 404:
-        return templates.TemplateResponse("404.html", {"request": request}, status_code=404)
+        try:
+            return templates.TemplateResponse("404.html", {"request": request}, status_code=404)
+        except Exception:
+            return HTMLResponse(content="<h1>404 - Page Not Found</h1><p>The page you're looking for doesn't exist.</p><a href='/'>Go Home</a>", status_code=404)
     return HTMLResponse(content=str(exc.detail), status_code=exc.status_code)
 
 # Router includes
