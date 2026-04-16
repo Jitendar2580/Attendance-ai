@@ -15,8 +15,8 @@ class ResponseHandler:
 
     def template_response(
         self,
-        request: Any,
         template_name: str,
+        request: Any,
         context: Dict[str, Any] | None = None,
         status_code: int = 200,
     ):
@@ -42,8 +42,8 @@ class ResponseHandler:
             context = {}
         context["error"] = error
         return self.template_response(
-            request,
             template_name,
+            request,
             context,
             status_code=status.HTTP_400_BAD_REQUEST,
         )
