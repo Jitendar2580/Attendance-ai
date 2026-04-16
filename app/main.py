@@ -1,10 +1,11 @@
+from pathlib import Path
+
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
-import os
 
 from app.core.config import get_settings
 from app.core.init import initialize_defaults
@@ -14,8 +15,12 @@ from app.routes import attendance, auth, chat, dashboard, profile, teams, users
 
 settings = get_settings()
 
+ROOT_DIR = Path(__file__).resolve().parent
+TEMPLATES_DIR = ROOT_DIR / "templates"
+STATIC_DIR = ROOT_DIR / "static"
+
 app = FastAPI(title=settings.app_name)
-templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
+templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 # Middleware setup
 app.add_middleware(
@@ -27,7 +32,7 @@ app.add_middleware(
 )
 
 # Mount static files
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 # Exception handlers
 @app.exception_handler(StarletteHTTPException)
