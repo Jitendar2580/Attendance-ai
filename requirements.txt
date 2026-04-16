@@ -10,3 +10,5 @@ pydantic-settings
 email-validator
 openai
 redis
+python-dotenv
+itsdangerous
