@@ -41,13 +41,13 @@ async def starlette_exception_handler(request: Request, exc: StarletteHTTPExcept
         return RedirectResponse(url="/auth/login", status_code=303)
     elif exc.status_code == 404:
         if request.url.path == "/404.html":
-            return templates.TemplateResponse("404.html", {"request": request}, status_code=404)
+            return templates.TemplateResponse(request, "404.html", status_code=404)
         return RedirectResponse(url="/404.html", status_code=303)
     return HTMLResponse(content=str(exc.detail), status_code=exc.status_code)
 
 @app.get("/404.html")
 def not_found_page(request: Request):
-    return templates.TemplateResponse("404.html", {"request": request}, status_code=404)
+    return templates.TemplateResponse(request, "404.html", status_code=404)
 
 # Router includes
 app.include_router(auth.router)
