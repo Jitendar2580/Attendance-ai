@@ -43,7 +43,8 @@
           <button id="startCamera" class="btn btn-outline-primary flex-grow-1" type="button"><i class="bi bi-camera-video me-1"></i>Start camera</button>
           <button id="captureButton" class="btn btn-primary flex-grow-1" type="button" disabled><i class="bi bi-camera me-1"></i>Capture & submit</button>
         </div>
-        <p class="small text-muted mt-3 mb-0">Use your live webcam to capture attendance. Captured images are saved and shown in the attendance history.</p>
+        <p id="cameraError" class="small text-danger mt-2 mb-0 d-none" role="alert"></p>
+        <p class="small text-muted mt-3 mb-0">Use your live webcam to capture attendance. Captured images are saved and shown in the attendance history. On a deployed server, the page must be served over <strong>HTTPS</strong> for the camera to work (browsers only allow camera on secure origins, except localhost).</p>
       </div>
     </div>
   </div>
@@ -102,20 +103,40 @@
   const video = document.getElementById('cameraVideo');
   const canvas = document.getElementById('cameraCanvas');
   const snapshot = document.getElementById('cameraSnapshot');
+  const cameraError = document.getElementById('cameraError');
   let stream;
 
+  function setCameraError(message) {
+    if (!cameraError) return;
+    cameraError.textContent = message;
+    cameraError.classList.toggle('d-none', !message);
+  }
+
   async function startVideo() {
+    setCameraError('');
     try {
+      if (!window.isSecureContext) {
+        throw new Error(
+          'Camera needs a secure page (HTTPS). Plain HTTP on a remote host hides the camera API. Use TLS in production or test on localhost.'
+        );
+      }
+      if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+        throw new Error(
+          'Camera API is not available. Use HTTPS, a supported browser, and avoid embedded frames that block permissions.'
+        );
+      }
       stream = await navigator.mediaDevices.getUserMedia({ video: true });
       video.srcObject = stream;
       captureButton.disabled = false;
       startCamera.textContent = 'Camera ready';
-      startCamera.classList.remove('btn-outline-primary');
+      startCamera.classList.remove('btn-outline-primary', 'btn-danger');
       startCamera.classList.add('btn-success');
     } catch (error) {
       startCamera.textContent = 'Camera unavailable';
-      startCamera.classList.remove('btn-outline-primary');
+      startCamera.classList.remove('btn-outline-primary', 'btn-success');
       startCamera.classList.add('btn-danger');
+      const msg = error && error.message ? error.message : 'Could not start the camera.';
+      setCameraError(msg);
       console.error('Camera start failed', error);
     }
   }
