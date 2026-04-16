@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="hero-banner reveal mb-4">
+  <div>
+    <h3>Your attendance dashboard</h3>
+    <p class="mb-0 text-muted">Use your camera image to mark today's attendance, then review your own attendance history.</p>
+  </div>
+  <span class="hero-chip"><i class="bi bi-camera-fill"></i> Camera check-in</span>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4 reveal">
+    <div class="card app-card metric-card metric-blue border-0">
+      <p><i class="bi bi-calendar-check me-1"></i> Total records</p>
+      <h4 class="counter" data-target="{{ total_records }}">0</h4>
+    </div>
+  </div>
+  <div class="col-md-4 reveal">
+    <div class="card app-card metric-card metric-green border-0">
+      <p><i class="bi bi-check-circle me-1"></i> Present today</p>
+      <h4 class="counter text-success" data-target="{{ present_today }}">0</h4>
+    </div>
+  </div>
+  <div class="col-md-4 reveal">
+    <div class="card app-card metric-card metric-purple border-0">
+      <p><i class="bi bi-people me-1"></i> Status breakdown</p>
+      <h4>{{ status_distribution | length }} types</h4>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-5 reveal">
+    <div class="card app-card h-100">
+      <div class="card-header-soft"><i class="bi bi-camera-reels"></i> Upload camera image</div>
+      <div class="card-body-pad">
+        <div class="ratio ratio-16x9 mb-3 rounded overflow-hidden bg-black" id="cameraContainer">
+          <video id="cameraVideo" autoplay muted playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+          <canvas id="cameraCanvas" class="d-none"></canvas>
+          <img id="cameraSnapshot" class="img-fluid d-none rounded" alt="Captured snapshot">
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <button id="startCamera" class="btn btn-outline-primary flex-grow-1" type="button"><i class="bi bi-camera-video me-1"></i>Start camera</button>
+          <button id="captureButton" class="btn btn-primary flex-grow-1" type="button" disabled><i class="bi bi-camera me-1"></i>Capture & submit</button>
+        </div>
+        <p class="small text-muted mt-3 mb-0">Use your live webcam to capture attendance. Captured images are saved and shown in the attendance history.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7 reveal">
+    <div class="card app-card h-100">
+      <div class="card-header-soft"><i class="bi bi-graph-up"></i> Status summary</div>
+      <div class="card-body-pad">
+        <ul class="list-group list-group-flush rounded-3 border">
+          {% for status, count in status_distribution.items() %}
+          <li class="list-group-item d-flex justify-content-between align-items-center border-0">
+            <span class="text-capitalize">{{ status }}</span>
+            <span class="badge rounded-pill text-bg-secondary">{{ count }}</span>
+          </li>
+          {% endfor %}
+          {% if status_distribution | length == 0 %}
+          <li class="list-group-item border-0 text-muted small">No attendance records yet.</li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card app-card reveal">
+  <div class="card-header-soft"><i class="bi bi-clock-history"></i> Your recent records</div>
+  <div class="table-responsive">
+    <table class="table data-table align-middle mb-0">
+        <thead><tr><th>Date</th><th>Status</th><th>Photo</th><th>Notes</th></tr></thead>
+        <tbody>
+          {% for row in recent_logs %}
+          <tr class="hover-row">
+            <td>{{ row.date }}</td>
+            <td><span class="status-pill status-{{ row.status.value }}">{{ row.status.value }}</span></td>
+            <td>
+              {% if row.image_path %}
+              <img src="{{ row.image_path }}" alt="capture" class="rounded" style="max-height:64px; max-width:96px; object-fit:cover;">
+              {% else %}
+              <span class="text-muted small">—</span>
+              {% endif %}
+            </td>
+            <td class="text-muted small">{{ row.notes or '—' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" class="text-center text-muted py-5">No attendance history available.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const startCamera = document.getElementById('startCamera');
+  const captureButton = document.getElementById('captureButton');
+  const video = document.getElementById('cameraVideo');
+  const canvas = document.getElementById('cameraCanvas');
+  const snapshot = document.getElementById('cameraSnapshot');
+  let stream;
+
+  async function startVideo() {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = stream;
+      captureButton.disabled = false;
+      startCamera.textContent = 'Camera ready';
+      startCamera.classList.remove('btn-outline-primary');
+      startCamera.classList.add('btn-success');
+    } catch (error) {
+      startCamera.textContent = 'Camera unavailable';
+      startCamera.classList.remove('btn-outline-primary');
+      startCamera.classList.add('btn-danger');
+      console.error('Camera start failed', error);
+    }
+  }
+
+  async function captureAttendance() {
+    if (!stream) return;
+    const track = stream.getVideoTracks()[0];
+    const settings = track.getSettings();
+    const width = settings.width || video.videoWidth || 640;
+    const height = settings.height || video.videoHeight || 480;
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, width, height);
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      snapshot.src = URL.createObjectURL(blob);
+      snapshot.classList.remove('d-none');
+      video.classList.add('d-none');
+      const form = new FormData();
+      const file = new File([blob], 'attendance.jpg', { type: 'image/jpeg' });
+      form.append('image', file);
+      try {
+        const response = await fetch('/attendance/upload', {
+          method: 'POST',
+          body: form,
+          redirect: 'follow',
+        });
+        if (response.redirected) {
+          window.location.href = response.url;
+          return;
+        }
+        const text = await response.text();
+        console.warn('Upload completed without redirect', text);
+      } catch (error) {
+        console.error('Upload failed', error);
+      }
+    }, 'image/jpeg', 0.9);
+  }
+
+  startCamera.addEventListener('click', startVideo);
+  captureButton.addEventListener('click', captureAttendance);
+</script>
+{% endblock %}

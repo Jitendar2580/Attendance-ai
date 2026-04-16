@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header reveal">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+    <div>
+      <h1>Attendance</h1>
+      <p>Filter records, log attendance, and export CSV.</p>
+      {% if is_player %}
+      <div class="alert alert-info mt-3 mb-0 small">You can only view your own attendance records here. Use the dashboard to upload a camera image for today’s attendance.</div>
+      {% endif %}
+    </div>
+    <a class="btn btn-outline-secondary" href="/attendance/export.csv">
+      <i class="bi bi-download me-1"></i> Export CSV
+    </a>
+  </div>
+</div>
+
+<div class="card app-card mb-4 reveal">
+  <div class="card-header-soft"><i class="bi bi-funnel"></i> Filters</div>
+  <div class="card-body-pad">
+    <form class="row g-3" method="get" action="/attendance">
+      {% if not is_player %}
+      <div class="col-md-3">
+        <label class="form-label small text-muted mb-1">Search user</label>
+        <input class="form-control" type="text" name="user_name" placeholder="Name contains…" value="{{ user_name or '' }}">
+      </div>
+      {% endif %}
+      <div class="col-md-2">
+        <label class="form-label small text-muted mb-1">Status</label>
+        <select class="form-select" name="status_filter">
+          <option value="">All</option>
+          {% for status in statuses %}
+          <option value="{{ status.value }}" {% if status_filter and status_filter.value == status.value %}selected{% endif %}>{{ status.value }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small text-muted mb-1">From</label>
+        <input class="form-control" type="date" name="start_date" value="{{ start_date or '' }}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small text-muted mb-1">To</label>
+        <input class="form-control" type="date" name="end_date" value="{{ end_date or '' }}">
+      </div>
+      <div class="col-md-3 d-flex align-items-end gap-2">
+        <button type="submit" class="btn btn-primary flex-grow-1"><i class="bi bi-search me-1"></i> Apply</button>
+        <a class="btn btn-light border" href="/attendance">Reset</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if not is_player %}
+<div class="card app-card mb-4 reveal">
+  <div class="card-header-soft"><i class="bi bi-plus-circle"></i> Mark attendance</div>
+  <div class="card-body-pad">
+    <form class="row g-3 align-items-end" method="post" action="/attendance/create">
+      <div class="col-md-4">
+        <label class="form-label small text-muted mb-1">Player</label>
+        <select class="form-select" name="user_id" required>
+          <option value="">Select user</option>
+          {% for user in users %}
+          <option value="{{ user.id }}">{{ user.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small text-muted mb-1">Date</label>
+        <input class="form-control" type="date" name="attendance_date" required>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small text-muted mb-1">Status</label>
+        <select class="form-select" name="status_value" required>
+          {% for status in statuses %}<option value="{{ status.value }}">{{ status.value }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small text-muted mb-1">Notes</label>
+        <input class="form-control" type="text" name="notes" placeholder="Optional">
+      </div>
+      <div class="col-md-1">
+        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-check-lg"></i></button>
+      </div>
+    </form>
+  </div>
+</div>
+{% else %}
+<div class="card app-card mb-4 reveal">
+  <div class="card-header-soft"><i class="bi bi-camera-video"></i> Upload camera attendance</div>
+  <div class="card-body-pad">
+    <div class="alert alert-info mb-0 small">
+      Players can upload a camera image to mark today’s attendance. This page shows only your records.
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="card app-card reveal">
+  <div class="card-header-soft"><i class="bi bi-list-ul"></i> Records</div>
+  <div class="table-responsive">
+    <table class="table data-table align-middle mb-0">
+      <thead><tr><th>User</th><th>Date</th><th>Status</th><th>Photo</th><th>Notes</th></tr></thead>
+      <tbody>
+        {% for row in records %}
+        <tr class="hover-row">
+          <td class="fw-semibold">{{ row.user.name }}</td>
+          <td>{{ row.date }}</td>
+          <td><span class="status-pill status-{{ row.status.value }}">{{ row.status.value }}</span></td>
+          <td>
+            {% if row.image_path %}
+            <img src="{{ row.image_path }}" alt="attendance" class="rounded" style="max-height:56px; max-width:84px; object-fit:cover;">
+            {% else %}
+            <span class="text-muted small">—</span>
+            {% endif %}
+          </td>
+          <td class="text-muted small">{{ row.notes or "—" }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-center text-muted py-5">No records match your filters.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header reveal">
+  <h1>Profile</h1>
+  <p>Update your account details and manage your personal information.</p>
+</div>
+
+<div class="card app-card mb-4 reveal">
+  <div class="card-header-soft"><i class="bi bi-person-circle"></i> Your profile</div>
+  <div class="card-body-pad">
+    {% if error %}
+    <div class="alert alert-danger small mb-3">{{ error }}</div>
+    {% endif %}
+    <form class="row g-3" method="post" action="/profile">
+      <div class="col-md-4">
+        <label class="form-label small text-muted mb-1">Full name</label>
+        <input class="form-control" name="name" value="{{ user.name }}" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small text-muted mb-1">Email</label>
+        <input class="form-control" type="email" name="email" value="{{ user.email }}" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small text-muted mb-1">Team</label>
+        <input class="form-control" type="text" value="{{ team_name or '—' }}" disabled>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small text-muted mb-1">Role</label>
+        <input class="form-control" type="text" value="{{ user.role.value }}" disabled>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small text-muted mb-1">New password</label>
+        <input class="form-control" type="password" name="password" placeholder="Leave blank to keep current password">
+      </div>
+      <div class="col-md-4 d-flex align-items-end">
+        <button class="btn btn-primary w-100" type="submit"><i class="bi bi-save me-1"></i>Save changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

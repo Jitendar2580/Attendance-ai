@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title or "Attendance IQ" }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="/static/style.css" rel="stylesheet">
+</head>
+<body class="app-shell">
+  <div class="bg-orb orb-1" aria-hidden="true"></div>
+  <div class="bg-orb orb-2" aria-hidden="true"></div>
+  <div class="bg-orb orb-3" aria-hidden="true"></div>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="logo-mark" aria-hidden="true"><i class="bi bi-graph-up-arrow text-white"></i></div>
+        <div>
+          <div class="brand-text">Attendance IQ</div>
+          <div class="brand-sub">Performance Suite</div>
+        </div>
+      </div>
+      <nav class="nav flex-column gap-1 mt-3 px-1">
+        {% if user %}
+        <a class="nav-link side-link {% if request.url.path.startswith('/dashboard') %}active{% endif %}" href="/dashboard">
+          <i class="bi bi-speedometer2"></i><span>Dashboard</span>
+        </a>
+        <a class="nav-link side-link {% if request.url.path.startswith('/attendance') %}active{% endif %}" href="/attendance">
+          <i class="bi bi-calendar-check"></i><span>Attendance</span>
+        </a>
+        <a class="nav-link side-link {% if request.url.path.startswith('/profile') %}active{% endif %}" href="/profile">
+          <i class="bi bi-person-lines-fill"></i><span>Profile</span>
+        </a>
+        {% if user.role.value in ['admin', 'manager'] %}
+        <a class="nav-link side-link {% if request.url.path.startswith('/users') %}active{% endif %}" href="/users">
+          <i class="bi bi-people"></i><span>Users</span>
+        </a>
+        {% endif %}
+        {% if user.role.value == 'admin' %}
+        <a class="nav-link side-link {% if request.url.path.startswith('/teams') %}active{% endif %}" href="/teams">
+          <i class="bi bi-diagram-3"></i><span>Teams</span>
+        </a>
+        {% endif %}
+        {% endif %}
+      </nav>
+      <a class="nav-link side-link danger mt-4 px-1" href="/auth/logout">
+        <i class="bi bi-box-arrow-right"></i><span>Logout</span>
+      </a>
+    </aside>
+    <div class="main-pane">
+      <header class="topbar">
+        <div>
+          <div class="topbar-title">AI Attendance &amp; Performance</div>
+          <div class="topbar-sub">Track attendance, spot trends, act on insights</div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <button type="button" id="themeToggle" class="btn btn-sm btn-theme" title="Toggle theme">
+            <i class="bi bi-moon-stars me-1"></i> Theme
+          </button>
+          <span class="live-dot" title="Session active"></span>
+          <span class="role-badge">{{ user.role.value if user else "guest" }}</span>
+        </div>
+      </header>
+      <main class="content-wrapper">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const toastMessage = new URLSearchParams(window.location.search).get("msg");
+    const toastType = new URLSearchParams(window.location.search).get("type") || "success";
+    if (toastMessage) {
+      const toast = document.createElement("div");
+      toast.className = `app-toast app-toast-${toastType}`;
+      const cleanMessage = decodeURIComponent(toastMessage.replaceAll("+", " "));
+      toast.innerHTML = `<span>${cleanMessage}</span><button type="button" aria-label="Close"><i class="bi bi-x-lg"></i></button>`;
+      document.body.appendChild(toast);
+      toast.querySelector("button").addEventListener("click", () => toast.remove());
+      setTimeout(() => toast.classList.add("show"), 40);
+      setTimeout(() => toast.classList.remove("show"), 3200);
+      setTimeout(() => toast.remove(), 3600);
+    }
+
+    const themeToggle = document.getElementById("themeToggle");
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") document.body.classList.add("theme-dark");
+    if (themeToggle) {
+      themeToggle.addEventListener("click", () => {
+        document.body.classList.toggle("theme-dark");
+        localStorage.setItem("theme", document.body.classList.contains("theme-dark") ? "dark" : "light");
+      });
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) entry.target.classList.add("is-visible");
+      });
+    }, { threshold: 0.12 });
+    document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
+  </script>
+
+  <!-- AI Chat Assistant -->
+  {% if user %}
+  <div id="chatAssistant" class="chat-assistant">
+    <button id="chatToggle" class="chat-toggle" title="AI Attendance Assistant">
+      <i class="bi bi-robot"></i>
+    </button>
+    <div class="chat-window">
+      <div class="chat-header">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-robot text-primary"></i>
+          <span class="fw-semibold">Attendance Assistant</span>
+        </div>
+        <button id="chatClose" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      <div id="chatMessages" class="chat-messages">
+        <div class="message assistant">
+          <div class="message-avatar">
+            <i class="bi bi-robot"></i>
+          </div>
+          <div class="message-content">
+            <div class="message-text">Hi! I'm your Attendance Assistant. I can help you understand your training patterns, provide insights, and answer questions about your attendance. What would you like to know?</div>
+            <div class="message-time">Just now</div>
+          </div>
+        </div>
+      </div>
+      <div class="chat-input">
+        <div class="input-group">
+          <input type="text" id="chatInput" class="form-control" placeholder="Ask about your attendance..." maxlength="500">
+          <button id="chatSend" class="btn btn-primary" type="button">
+            <i class="bi bi-send"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <script>
+    // Chat Assistant Functionality
+    {% if user %}
+    class ChatAssistant {
+      constructor() {
+        this.isOpen = false;
+        this.isTyping = false;
+        void this.init();
+      }
+
+      async init() {
+        this.toggleBtn = document.getElementById('chatToggle');
+        this.chatWindow = document.querySelector('.chat-window');
+        this.closeBtn = document.getElementById('chatClose');
+        this.input = document.getElementById('chatInput');
+        this.sendBtn = document.getElementById('chatSend');
+        this.messages = document.getElementById('chatMessages');
+
+        this.toggleBtn.addEventListener('click', () => this.toggle());
+        this.closeBtn.addEventListener('click', () => this.close());
+        this.sendBtn.addEventListener('click', () => this.sendMessage());
+        this.input.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            this.sendMessage();
+          }
+        });
+
+        this.input.disabled = true;
+        this.sendBtn.disabled = true;
+        await this.loadHistory();
+        this.input.disabled = false;
+        if (!this.isTyping) this.sendBtn.disabled = false;
+      }
+
+      formatMessageTime(isoString) {
+        if (!isoString) return 'Just now';
+        try {
+          const d = new Date(isoString);
+          if (Number.isNaN(d.getTime())) return 'Just now';
+          return d.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+        } catch {
+          return 'Just now';
+        }
+      }
+
+      async loadHistory() {
+        try {
+          const response = await fetch('/api/chat/history?limit=50', {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+          });
+          if (!response.ok) return;
+          const data = await response.json();
+          const items = data.items || [];
+          if (items.length === 0) return;
+
+          this.messages.innerHTML = '';
+          for (const row of items) {
+            this.addMessage(row.message, 'user', row.created_at);
+            this.addMessage(row.response, 'assistant', row.created_at);
+          }
+          this.scrollToBottom();
+        } catch (e) {
+          console.error('Chat history load failed:', e);
+        }
+      }
+
+      toggle() {
+        this.isOpen = !this.isOpen;
+        document.getElementById('chatAssistant').classList.toggle('open', this.isOpen);
+        if (this.isOpen) {
+          this.input.focus();
+          this.scrollToBottom();
+        }
+      }
+
+      close() {
+        this.isOpen = false;
+        document.getElementById('chatAssistant').classList.remove('open');
+      }
+
+      async sendMessage() {
+        const message = this.input.value.trim();
+        if (!message || this.isTyping) return;
+
+        this.addMessage(message, 'user');
+        this.input.value = '';
+        this.setTyping(true);
+
+        try {
+          const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            this.addMessage(data.response, 'assistant');
+          } else {
+            this.addMessage('Sorry, I encountered an error. Please try again.', 'assistant');
+          }
+        } catch (error) {
+          console.error('Chat error:', error);
+          this.addMessage('Network error. Please check your connection and try again.', 'assistant');
+        }
+
+        this.setTyping(false);
+      }
+
+      addMessage(text, type, timeIso = null) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${type}`;
+
+        const avatar = type === 'user' ? '<i class="bi bi-person-circle"></i>' : '<i class="bi bi-robot"></i>';
+        const timeLabel = this.formatMessageTime(timeIso);
+
+        messageDiv.innerHTML = `
+          <div class="message-avatar">${avatar}</div>
+          <div class="message-content">
+            <div class="message-text">${this.escapeHtml(text)}</div>
+            <div class="message-time">${this.escapeHtml(timeLabel)}</div>
+          </div>
+        `;
+
+        this.messages.appendChild(messageDiv);
+        this.scrollToBottom();
+      }
+
+      setTyping(typing) {
+        this.isTyping = typing;
+        this.sendBtn.disabled = typing;
+
+        if (typing) {
+          const typingDiv = document.createElement('div');
+          typingDiv.className = 'message assistant typing';
+          typingDiv.id = 'typingIndicator';
+          typingDiv.innerHTML = `
+            <div class="message-avatar"><i class="bi bi-robot"></i></div>
+            <div class="message-content">
+              <div class="typing-indicator">
+                <span></span><span></span><span></span>
+              </div>
+            </div>
+          `;
+          this.messages.appendChild(typingDiv);
+          this.scrollToBottom();
+        } else {
+          const typingIndicator = document.getElementById('typingIndicator');
+          if (typingIndicator) typingIndicator.remove();
+        }
+      }
+
+      scrollToBottom() {
+        setTimeout(() => {
+          this.messages.scrollTop = this.messages.scrollHeight;
+        }, 100);
+      }
+
+      escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+    }
+
+    // Initialize chat assistant when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      new ChatAssistant();
+    });
+    {% endif %}
+  </script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>
