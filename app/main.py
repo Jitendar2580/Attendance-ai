@@ -1,6 +1,8 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.core.config import get_settings
@@ -12,6 +14,7 @@ from app.routes import attendance, auth, chat, dashboard, profile, teams, users
 settings = get_settings()
 
 app = FastAPI(title=settings.app_name)
+templates = Jinja2Templates(directory="app/templates")
 
 # Middleware setup
 app.add_middleware(
@@ -24,6 +27,15 @@ app.add_middleware(
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+# Exception handlers
+@app.exception_handler(StarletteHTTPException)
+async def starlette_exception_handler(request: Request, exc: StarletteHTTPException):
+    if exc.status_code == 401:
+        return RedirectResponse(url="/auth/login", status_code=303)
+    elif exc.status_code == 404:
+        return templates.TemplateResponse("404.html", {"request": request}, status_code=404)
+    return HTMLResponse(content=str(exc.detail), status_code=exc.status_code)
 
 # Router includes
 app.include_router(auth.router)
