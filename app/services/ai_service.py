@@ -166,6 +166,7 @@ Complete rows for this response (up to {RESULT_FORMATTER_MAX_ROWS}; use every ro
 
 Rules:
 - Be polite, concise, and easy to understand.
+- Format the answer with Markdown so the chat UI can render it: use **bold** for labels, numbered lists (1. 2. …) or bullet lists for multiple records, sub-bullets with "- ", and blank lines between major sections.
 - Do not mention SQL, database, query execution, or technical internals.
 - If row count is 0, apologize politely and suggest what detail the user can provide next.
 - If data exists, reflect all rows provided above: for lists, include each entry (name/role/date/status as relevant). Do not summarize away rows the user asked to see in full.

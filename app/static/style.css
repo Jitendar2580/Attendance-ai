@@ -813,6 +813,50 @@ body.theme-dark .form-select {
   word-wrap: break-word;
 }
 
+/* Assistant Markdown (rendered via marked + DOMPurify) */
+.message-text-md p {
+  margin: 0 0 0.5rem;
+}
+
+.message-text-md p:last-child {
+  margin-bottom: 0;
+}
+
+.message-text-md ul,
+.message-text-md ol {
+  margin: 0.35rem 0 0.5rem 1.1rem;
+  padding-left: 0.35rem;
+}
+
+.message-text-md li {
+  margin-bottom: 0.3rem;
+}
+
+.message-text-md li > p {
+  margin: 0;
+}
+
+.message-text-md strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.message-text-md code {
+  font-size: 0.85em;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background: var(--accent-soft);
+}
+
+.message-text-md pre {
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.65rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  overflow-x: auto;
+  font-size: 0.8rem;
+}
+
 .message.user .message-text {
   background: var(--accent);
   color: white;
