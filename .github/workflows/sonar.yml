@@ -5,18 +5,19 @@ on:
     branches:
       - main
       - master
-      - development   # 👈 ADD THIS
+      - development
   pull_request:
     branches:
       - main
       - master
-      - development   # 👈 ADD THIS
+      - development
 
 jobs:
   sonarcloud:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4   # ✅ updated
         with:
           fetch-depth: 0
 
@@ -24,7 +25,7 @@ jobs:
         uses: SonarSource/sonarcloud-github-action@v2
         with:
           args: >
-            -Dsonar.projectKey=YOUR_PROJECT_KEY
-            -Dsonar.organization=YOUR_ORG
+            -Dsonar.projectKey=YOUR_REAL_PROJECT_KEY
+            -Dsonar.organization=YOUR_REAL_ORG
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
