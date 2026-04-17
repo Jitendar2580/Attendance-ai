@@ -4,7 +4,13 @@ on:
   push:
     branches:
       - main
+      - master
+      - development   # 👈 ADD THIS
   pull_request:
+    branches:
+      - main
+      - master
+      - development   # 👈 ADD THIS
 
 jobs:
   sonarcloud:
