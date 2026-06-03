@@ -142,39 +142,80 @@
   }
 
   async function captureAttendance() {
-    if (!stream) return;
-    const track = stream.getVideoTracks()[0];
-    const settings = track.getSettings();
-    const width = settings.width || video.videoWidth || 640;
-    const height = settings.height || video.videoHeight || 480;
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, width, height);
-    canvas.toBlob(async (blob) => {
-      if (!blob) return;
-      snapshot.src = URL.createObjectURL(blob);
-      snapshot.classList.remove('d-none');
-      video.classList.add('d-none');
-      const form = new FormData();
-      const file = new File([blob], 'attendance.jpg', { type: 'image/jpeg' });
-      form.append('image', file);
-      try {
-        const response = await fetch('/attendance/upload', {
-          method: 'POST',
-          body: form,
-          redirect: 'follow',
-        });
-        if (response.redirected) {
-          window.location.href = response.url;
-          return;
-        }
-        const text = await response.text();
-        console.warn('Upload completed without redirect', text);
-      } catch (error) {
-        console.error('Upload failed', error);
+    if (!stream) {
+      setCameraError('Camera stream not started. Click "Start camera" first.');
+      return;
+    }
+    
+    try {
+      const tracks = stream.getVideoTracks();
+      if (tracks.length === 0) {
+        throw new Error('No video track available. Camera may have been disconnected.');
       }
-    }, 'image/jpeg', 0.9);
+      
+      const track = tracks[0];
+      const settings = track.getSettings();
+      const width = settings.width || video.videoWidth || 640;
+      const height = settings.height || video.videoHeight || 480;
+      
+      if (width === 0 || height === 0) {
+        throw new Error('Camera video dimensions are invalid. Ensure camera is streaming.');
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Could not get canvas context. Browser may not support canvas.');
+      }
+      
+      ctx.drawImage(video, 0, 0, width, height);
+      captureButton.disabled = true;
+      captureButton.textContent = '⏳ Uploading...';
+      
+      canvas.toBlob(async (blob) => {
+        try {
+          if (!blob) {
+            throw new Error('Failed to capture image. Canvas conversion failed.');
+          }
+          
+          snapshot.src = URL.createObjectURL(blob);
+          snapshot.classList.remove('d-none');
+          video.classList.add('d-none');
+          
+          const form = new FormData();
+          const file = new File([blob], 'attendance.jpg', { type: 'image/jpeg' });
+          form.append('image', file);
+          
+          const response = await fetch('/attendance/upload', {
+            method: 'POST',
+            body: form,
+            redirect: 'follow',
+          });
+          
+          if (response.redirected) {
+            // Stop stream before redirecting
+            stream.getTracks().forEach(track => track.stop());
+            window.location.href = response.url;
+            return;
+          }
+          
+          const text = await response.text();
+          throw new Error('Upload completed without redirect: ' + text);
+        } catch (error) {
+          const errorMsg = error && error.message ? error.message : 'Upload failed. Please try again.';
+          setCameraError(errorMsg);
+          console.error('Upload error', error);
+          captureButton.disabled = false;
+          captureButton.textContent = '📷 Capture & submit';
+        }
+      }, 'image/jpeg', 0.9);
+    } catch (error) {
+      const errorMsg = error && error.message ? error.message : 'Capture failed. Please try again.';
+      setCameraError(errorMsg);
+      console.error('Capture error', error);
+      captureButton.disabled = false;
+    }
   }
 
   startCamera.addEventListener('click', startVideo);

@@ -6,9 +6,13 @@ alembic
 psycopg[binary]
 python-multipart
 passlib[bcrypt]
+argon2-cffi
 pydantic-settings
 email-validator
 openai
 redis
 python-dotenv
 itsdangerous
+pymysql
+cryptography
+psycopg2

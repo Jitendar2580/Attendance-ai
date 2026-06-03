@@ -145,19 +145,3 @@ def export_attendance_csv(
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=attendance.csv"}
     )
-
-
-@router.get("/export.csv")
-def export_attendance_csv(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    team_id = current_user.team_id if current_user.role == UserRole.MANAGER else None
-    user_id = current_user.id if current_user.role == UserRole.PLAYER else None
-    records = list_attendance(db, offset=0, limit=1000, team_id=team_id, user_id=user_id)
-    lines = ["id,user,date,status,notes"]
-    for record in records:
-        notes = (record.notes or "").replace(",", " ")
-        lines.append(f"{record.id},{record.user.name},{record.date},{record.status.value},{notes}")
-    data = "\n".join(lines)
-    return StreamingResponse(iter([data]), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=attendance.csv"})

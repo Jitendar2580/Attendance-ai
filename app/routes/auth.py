@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 import os
 
 from app.core.database import get_db
 from app.core.response_handlers import ResponseHandler
+from app.core.security import PasswordTooLongError
 from app.models.user import UserRole
 from app.schemas.user import UserCreate
 from app.services.auth_service import authenticate_user
@@ -83,15 +85,29 @@ def register(
             _get_register_page_context(),
         )
 
-    team_id_value = int(team_id) if team_id else None
-    payload = UserCreate(
-        name=name,
-        email=email,
-        password=password,
-        role=role,
-        team_id=team_id_value,
-    )
-    user = create_user(db, payload)
+    try:
+        team_id_value = int(team_id) if team_id else None
+        payload = UserCreate(
+            name=name,
+            email=email,
+            password=password,
+            role=role,
+            team_id=team_id_value,
+        )
+        user = create_user(db, payload)
+    except (PasswordTooLongError, ValidationError) as e:
+        error_msg = str(e)
+        if isinstance(e, ValidationError):
+            # Extract first error message from pydantic ValidationError
+            error_detail = e.errors()[0]["msg"] if e.errors() else "Validation failed."
+            error_msg = error_detail
+        return response_handler.template_error(
+            request,
+            "auth/register.html",
+            error_msg,
+            _get_register_page_context(),
+        )
+
     request.session["user_id"] = user.id
     return RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
 
